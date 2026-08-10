@@ -1,5 +1,5 @@
-REPO_URL="https://api.github.com/repos/dupazlasu/android_kernel_samsung_s5e9925/releases/latest"
-REPO_ZIP="$(curl -s "$REPO_URL" | jq -r '.assets[] | select(.name | contains("b0s") and contains("Vanilla")) | .browser_download_url')"
+REPO_URL="https://api.github.com/repos/milxnaq/android_kernel_samsung_s5e9925/releases/latest"
+REPO_ZIP="$(curl -sL "$REPO_URL" | jq -r '.assets[] | select(.name | contains("b0s") and contains("Vanilla")) | .browser_download_url')"
 
 LOG_STEP_IN "- Downloading ExtremeKernel"
 
