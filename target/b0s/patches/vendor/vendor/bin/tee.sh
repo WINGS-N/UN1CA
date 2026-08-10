@@ -9,6 +9,10 @@
 # If they don't then a prop will be set that we will use later 
 # to mount the correct TEEgris folder.
 
-if strings /dev/block/by-name/radio | grep -q FYI3; then
+RADIO=$(strings /dev/block/by-name/radio)
+
+if echo "$RADIO" | grep -q FYI3; then
     setprop dev.teegris.model old
+elif echo "$RADIO" | grep -q EYB1; then
+    setprop dev.teegris.model eyb1
 fi

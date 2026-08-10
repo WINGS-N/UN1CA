@@ -3,3 +3,6 @@ on early-init
 
 on fs && property:dev.teegris.model=old
     mount none /vendor/etc/tee_old /vendor/tee bind
+
+on fs && property:dev.teegris.model=eyb1
+    mount none /vendor/etc/tee_eyb1 /vendor/tee bind
