@@ -19,7 +19,7 @@ fi
 PRIVATE_KEY_PATH+=".pk8"
 PUBLIC_KEY_PATH+=".x509.pem"
 
-trap 'rm -rf "$TMP_DIR"' EXIT INT
+trap 'rm -rf "$TMP_DIR" "$TMP_DIR-target"' EXIT INT
 
 CALCULATE_MIN_CACHE_SIZE()
 {
@@ -446,9 +446,25 @@ if ! unzip -l "$SOURCE_ZIP" | grep -q "build_info.txt" || unzip -l "$SOURCE_ZIP"
     exit 1
 fi
 
-if ! unzip -l "$TARGET_ZIP" | grep -q "build_info.txt" || unzip -l "$TARGET_ZIP" | grep -q "META-INF"; then
+TARGET_DIR=""
+if [ -d "$TARGET_ZIP" ]; then
+    if [ ! -f "$TARGET_ZIP/build_info.txt" ] || [ -d "$TARGET_ZIP/META-INF" ]; then
+        LOGE "Folder not valid: ${TARGET_ZIP//$SRC_DIR\//}"
+        exit 1
+    fi
+    TARGET_DIR="$TARGET_ZIP"
+elif ! unzip -l "$TARGET_ZIP" | grep -q "build_info.txt" || unzip -l "$TARGET_ZIP" | grep -q "META-INF"; then
     LOGE "File not valid: ${TARGET_ZIP//$SRC_DIR\//}"
     exit 1
+fi
+
+if [ "$TARGET_DIR" ]; then
+    case "$TARGET_DIR" in
+        "$TMP_DIR"|"$TMP_DIR"/*)
+            EVAL "mv \"$TMP_DIR\" \"$TMP_DIR-target\"" || exit 1
+            TARGET_DIR="${TARGET_DIR/#$TMP_DIR/$TMP_DIR-target}"
+            ;;
+    esac
 fi
 
 [ -d "$TMP_DIR" ] && rm -rf "$TMP_DIR"
@@ -458,8 +474,13 @@ cp -a "$SRC_DIR/prebuilts/bootable/deprecated-ota/updater" "$TMP_DIR/META-INF/co
 LOG "- Extracting source files"
 EVAL "unzip -o \"$SOURCE_ZIP\" -d \"$TMP_DIR/source\"" || exit 1
 
-LOG "- Extracting target files"
-EVAL "unzip -o \"$TARGET_ZIP\" -d \"$TMP_DIR/target\"" || exit 1
+if [ "$TARGET_DIR" ]; then
+    LOG "- Taking target files as built"
+    EVAL "mv \"$TARGET_DIR\" \"$TMP_DIR/target\"" || exit 1
+else
+    LOG "- Extracting target files"
+    EVAL "unzip -o \"$TARGET_ZIP\" -d \"$TMP_DIR/target\"" || exit 1
+fi
 
 SOURCE_BUILD_INFO="$(cat "$TMP_DIR/source/build_info.txt")"
 TARGET_BUILD_INFO="$(cat "$TMP_DIR/target/build_info.txt")"

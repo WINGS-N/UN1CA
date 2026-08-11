@@ -8,6 +8,7 @@ source "$SRC_DIR/scripts/utils/build_utils.sh" || exit 1
 INCREMENTAL=false
 SOURCE_ZIP=""
 TARGET_ZIP=""
+TARGET_IS_DIR=false
 OUTPUT_FILE=""
 
 PREPARE_SCRIPT()
@@ -39,6 +40,12 @@ PREPARE_SCRIPT()
     if [ ! "$TARGET_ZIP" ]; then
         PRINT_USAGE
         exit 1
+    elif [ -d "$TARGET_ZIP" ]; then
+        TARGET_IS_DIR=true
+        if [ ! -f "$TARGET_ZIP/build_info.txt" ]; then
+            LOGE "File not found: ${TARGET_ZIP//$SRC_DIR\//}/build_info.txt"
+            exit 1
+        fi
     elif [ ! -f "$TARGET_ZIP" ]; then
         LOGE "File not found: ${TARGET_ZIP//$SRC_DIR\//}"
         exit 1
@@ -54,8 +61,12 @@ PREPARE_SCRIPT()
     if [ ! "$OUTPUT_FILE" ]; then
         local TARGET_BUILD_INFO
 
-        EVAL "unzip -p \"$TARGET_ZIP\" \"build_info.txt\"" || exit 1
-        TARGET_BUILD_INFO="$(unzip -p "$TARGET_ZIP" "build_info.txt")"
+        if $TARGET_IS_DIR; then
+            TARGET_BUILD_INFO="$(cat "$TARGET_ZIP/build_info.txt")"
+        else
+            EVAL "unzip -p \"$TARGET_ZIP\" \"build_info.txt\"" || exit 1
+            TARGET_BUILD_INFO="$(unzip -p "$TARGET_ZIP" "build_info.txt")"
+        fi
 
         OUTPUT_FILE="$OUT_DIR/UN1CA_"
         OUTPUT_FILE+="$(grep "^version" <<< "$TARGET_BUILD_INFO" | cut -d "=" -f 2 -s)"
@@ -81,7 +92,8 @@ PREPARE_SCRIPT()
 
 PRINT_USAGE()
 {
-    echo "Usage: build_flashable_zip [options] <file>" >&2
+    echo "Usage: build_flashable_zip [options] <file|dir>" >&2
+    echo " <file|dir> : target-files zip, or a directory holding its contents" >&2
     echo " -i, --incremental : Generate an incremental zip using the given target-files zip as source" >&2
     echo " -o, --output : Specify the output zip path, defaults to $OUT_DIR" >&2
 }
